@@ -70,7 +70,7 @@ export default function AdminPage() {
   // Check if user is admin (support both Microsoft auth and demo users)
   const isAdmin = currentUser?.idTokenClaims?.roles?.includes('Admin') || 
                   process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser?.username) ||
-                  currentUser?.role === 'ADMIN'
+                  (currentUser as any)?.role === 'ADMIN'
 
   useEffect(() => {
     if (currentUser && isAdmin) {

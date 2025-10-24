@@ -37,13 +37,13 @@ export async function POST(
       switch (change.action) {
         case 'CREATE':
           await prisma.site.create({
-            data: change.newData
+            data: change.newData as any
           })
           break
         case 'UPDATE':
           await prisma.site.update({
             where: { id: change.siteId },
-            data: change.newData
+            data: change.newData as any
           })
           break
         case 'DELETE':
@@ -54,7 +54,7 @@ export async function POST(
         case 'ASSOCIATE':
           await prisma.site.update({
             where: { id: change.siteId },
-            data: { parentHubId: change.newData.parentHubId }
+            data: { parentHubId: (change.newData as any)?.parentHubId }
           })
           break
         case 'DISASSOCIATE':

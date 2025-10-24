@@ -103,7 +103,7 @@ export function SharePointHubSpokeManager() {
         // This is a hub
         managerData[division][site.name] = {
           url: site.url,
-          spokes: site.spokes || []
+          spokes: (site as any).spokes || []
         }
       } else if (site.isSpoke && site.parentHubId) {
         // This is a spoke - find its parent hub

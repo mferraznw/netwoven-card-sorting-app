@@ -349,7 +349,7 @@ export function SiteListPanel({ showHierarchy = false, onHubSelect, onSiteSelect
                           <div className="flex items-center space-x-1">
                             <span className="h-3 w-3">🌿</span>
                             <span className="text-dmv-blue-600 font-medium">
-                              {site.spokeCount || 0} spokes
+                              {(site as any).spokeCount || 0} spokes
                             </span>
                           </div>
                         )}

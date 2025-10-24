@@ -78,7 +78,7 @@ export function ResizableGraphView({
       >
         <SiteListPanel 
           onHubSelect={onHubSelect}
-          onDrop={onAssociationChange}
+          onDrop={() => {}}
         />
       </div>
 
@@ -134,7 +134,7 @@ export function ResizableGraphView({
       >
         <SpokeManagementPanel 
           selectedHub={selectedHub}
-          onAssociationChange={onAssociationChange}
+          onAssociationChange={() => {}}
         />
       </div>
     </div>
