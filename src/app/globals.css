@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom DMV Theme Styles */
+.dmv-gradient {
+  background: linear-gradient(135deg, #3b82f6 0%, #fbbf24 100%);
+}
+
+.dmv-card {
+  @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+.dmv-button-primary {
+  @apply bg-dmv-blue-600 hover:bg-dmv-blue-700 text-white font-medium px-4 py-2 rounded-md transition-colors duration-200;
+}
+
+.dmv-button-secondary {
+  @apply bg-dmv-yellow-500 hover:bg-dmv-yellow-600 text-white font-medium px-4 py-2 rounded-md transition-colors duration-200;
+}
+
+/* Graph Visualization Styles */
+.graph-container {
+  @apply w-full h-full relative overflow-hidden;
+}
+
+.graph-node {
+  @apply cursor-pointer transition-all duration-200;
+}
+
+.graph-node:hover {
+  @apply scale-105;
+}
+
+.graph-node.hub {
+  @apply fill-dmv-blue-500 stroke-dmv-blue-700 stroke-2;
+}
+
+.graph-node.spoke {
+  @apply fill-dmv-yellow-400 stroke-dmv-yellow-600 stroke-1;
+}
+
+.graph-node.subhub {
+  @apply fill-dmv-blue-300 stroke-dmv-blue-500 stroke-2;
+}
+
+.graph-link {
+  @apply stroke-gray-400 stroke-1;
+}
+
+.graph-link:hover {
+  @apply stroke-dmv-blue-500 stroke-2;
+}
+
+/* Drag and Drop Styles */
+.drag-preview {
+  @apply opacity-50 transform rotate-3;
+}
+
+.drop-target {
+  @apply ring-2 ring-dmv-blue-500 ring-opacity-50;
+}
+
+.drag-over {
+  @apply bg-dmv-blue-50 border-dmv-blue-300;
+}
+
+/* Loading States */
+.loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded hover:bg-gray-400;
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

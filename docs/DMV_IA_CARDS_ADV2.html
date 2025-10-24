@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SharePoint Hub & Spoke Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);color:#2d3748;min-height:100vh;padding:15px}
+.container{max-width:1500px;margin:auto;display:flex;flex-direction:column;gap:12px}
+.header{background:white;border-radius:10px;padding:15px 20px;box-shadow:0 5px 15px rgba(0,0,0,0.1)}
+h1{margin-bottom:10px}
+.upload-area{border:2px dashed #cbd5e0;border-radius:10px;padding:20px;text-align:center;background:#f7fafc;cursor:pointer;margin-bottom:10px}
+.upload-area:hover{border-color:#667eea;background:#edf2f7}
+button{background:#667eea;color:white;border:none;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:.9em;transition:.2s}
+button:hover{background:#5a67d8;transform:scale(1.02)}
+button.danger{background:#e53e3e}
+button.danger:hover{background:#c53030}
+.main{display:flex;gap:15px;height:80vh}
+.left-panel{flex:1;overflow-y:auto;background:#fff;border-radius:10px;padding:10px;box-shadow:0 5px 20px rgba(0,0,0,0.1)}
+.right-panel{flex:1.5;overflow-y:auto;background:#fff;border-radius:10px;padding:10px;box-shadow:0 5px 20px rgba(0,0,0,0.1)}
+.division{margin-bottom:10px}
+.division h3{font-size:1em;margin-bottom:5px;color:#fff;background:#3182ce;padding:5px 10px;border-radius:6px;cursor:pointer}
+.hub{border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;padding:8px;background:#f7fafc;cursor:pointer;transition:.2s}
+.hub:hover{background:#edf2f7}
+.hub.selected{background:#c3dafe;border-color:#667eea}
+.hub-header{display:flex;justify-content:space-between;align-items:center;font-weight:500}
+.hub-header .edit-icon{cursor:pointer;font-size:.9em;color:#3182ce;margin-left:8px}
+.hub .hub-details{font-size:.8em;color:#4a5568;margin-top:3px}
+.hub a{color:#3182ce;text-decoration:underline;margin-left:5px}
+.spoke{border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff;transition:.2s}
+.spoke:hover{background:#edf2f7}
+.spoke.inactive{background:#fee2e2;border-color:#fc8181}
+.spoke a{color:#2b6cb0;text-decoration:none;font-weight:500}
+.spoke .meta{font-size:.8em;color:#4a5568;margin-top:3px}
+.delete-btn{float:right;background:#e53e3e;color:white;border:none;border-radius:6px;padding:2px 8px;font-size:.8em;cursor:pointer}
+.delete-btn:hover{background:#c53030}
+.hub.drop-target{outline:3px dashed #48bb78;outline-offset:-3px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;justify-content:center;align-items:center;z-index:1000}
+.modal{background:white;padding:20px;border-radius:10px;text-align:center;width:300px}
+.modal button{margin-top:10px;width:40%}
+.modal .cancel{background:#a0aec0}
+.modal .cancel:hover{background:#718096}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📊 SharePoint Hub & Spoke Manager</h1>
+    <div class="upload-area" id="uploadArea">Click or drag a CSV file here</div>
+    <input type="file" id="fileInput" accept=".csv" style="display:none">
+    <div style="margin-top:8px;">
+      <button id="addHubBtn">➕ Add Hub</button>
+      <button id="saveCsvBtn">💾 Save CSV</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="left-panel" id="leftPanel"></div>
+    <div class="right-panel" id="rightPanel"><h3>Select a Hub to view its Spokes</h3></div>
+  </div>
+</div>
+<div id="modalContainer"></div>
+
+<script>
+let data={}, selectedDivision=null, selectedHub=null, draggedSpoke=null;
+
+// --- Upload Handlers ---
+const uploadArea=document.getElementById('uploadArea'),
+      fileInput=document.getElementById('fileInput');
+uploadArea.onclick = ()=>fileInput.click();
+uploadArea.ondragover = e=>{ e.preventDefault(); uploadArea.style.background="#e6fffa"; };
+uploadArea.ondragleave = ()=>uploadArea.style.background="#f7fafc";
+uploadArea.ondrop = e=>{ e.preventDefault(); uploadArea.style.background="#f7fafc"; if(e.dataTransfer.files[0]) readCSV(e.dataTransfer.files[0]); };
+fileInput.onchange = e => readCSV(e.target.files[0]);
+
+// --- CSV Reader ---
+function readCSV(file){
+  const reader=new FileReader();
+  reader.onload = e => parseCSV(e.target.result);
+  reader.readAsText(file);
+}
+
+// --- Parse CSV robustly ---
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return;
+
+  const header=lines[0].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(h=>h.replace(/^"|"$/g,'').trim().toLowerCase());
+  const idx=k=>header.indexOf(k);
+  const get=(row,k)=> idx(k)!==-1 ? (row[idx(k)]||'').replace(/^"|"$/g,'').trim() : '';
+
+  data={};
+  for(let i=1;i<lines.length;i++){
+    const row=lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+    const div=get(row,'division'); if(!div) continue;
+    const hub=get(row,'hub site name')||'Unspecified Hub';
+    const hubUrl=get(row,'hub url')||'#';
+    const spoke=get(row,'spoke site name')||'Unnamed Spoke';
+    const spokeUrl=get(row,'spoke url')||'#';
+    const last=get(row,'last activity (utc)');
+    const files=get(row,'files');
+    const storage=get(row,'storage used (%)');
+    const created=get(row,'created by');
+
+    if(!data[div]) data[div]={};
+    if(!data[div][hub]) data[div][hub]={url:hubUrl,spokes:[]};
+    data[div][hub].spokes.push({name:spoke,url:spokeUrl,last,files,storage,created});
+  }
+  renderLeft();
+}
+
+// --- Left Panel ---
+function renderLeft(){
+  const left=document.getElementById('leftPanel');
+  left.innerHTML='';
+  Object.keys(data).forEach(div=>{
+    const divEl=document.createElement('div'); divEl.className='division';
+    const divHeader=document.createElement('h3');
+    divHeader.textContent=`${div} (${Object.keys(data[div]).length} hubs)`;
+    divEl.appendChild(divHeader);
+
+    Object.keys(data[div]).forEach(h=>{
+      const hub=data[div][h];
+      const inactiveCount = hub.spokes.filter(s=>isInactive(s.last,s.files)).length;
+      const hubEl=document.createElement('div');
+      hubEl.className='hub'+(selectedDivision===div && selectedHub===h ? ' selected' : '');
+      hubEl.innerHTML=`
+        <div class="hub-header">
+          <div>
+            <strong>${h}</strong>
+            <span class="edit-icon" onclick="openHubEditModal('${div}','${h}',event)">✏️</span>
+          </div>
+        </div>
+        <div class="hub-details">
+          ${hub.spokes.length} Spokes (${inactiveCount} inactive)<br>
+          🔗 <a href="${hub.url}" target="_blank">${hub.url}</a>
+        </div>`;
+      hubEl.addEventListener('click',e=>{ e.stopPropagation(); selectedDivision=div; selectedHub=h; renderLeft(); renderRight(); });
+      hubEl.addEventListener('dragover',e=>{ e.preventDefault(); hubEl.classList.add('drop-target'); });
+      hubEl.addEventListener('dragleave',()=>hubEl.classList.remove('drop-target'));
+      hubEl.addEventListener('drop',e=>{
+        e.preventDefault(); hubEl.classList.remove('drop-target');
+        if(!draggedSpoke) return;
+        const {div:oldDiv, hub:oldHub, idx} = draggedSpoke;
+        const moved = data[oldDiv][oldHub].spokes.splice(idx,1)[0];
+        data[div][h].spokes.push(moved);
+        draggedSpoke=null;
+        renderLeft(); if(selectedDivision===oldDiv && selectedHub===oldHub) renderRight();
+      });
+      divEl.appendChild(hubEl);
+    });
+    left.appendChild(divEl);
+  });
+}
+
+
+// --- Right Panel ---
+function renderRight(){
+  const panel=document.getElementById('rightPanel');
+  if(!selectedDivision||!selectedHub){ panel.innerHTML='<h3>Select a Hub to view its Spokes</h3>'; return; }
+  const hub=data[selectedDivision][selectedHub];
+  panel.innerHTML=`<h2>${selectedHub}</h2><div class="meta"><strong>${selectedDivision}</strong></div><hr><br>`;
+  hub.spokes.forEach((s,i)=>{
+    const inactive=isInactive(s.last,s.files);
+    const sp=document.createElement('div');
+    sp.className='spoke'+(inactive?' inactive':'');
+    sp.draggable=true;
+    sp.innerHTML=`<button class="delete-btn" onclick="confirmDeleteSpoke(${i})">🗑️</button>
+      <a href="${s.url}" target="_blank">${s.name}</a>
+      <div class="meta">🕓 ${s.last||'N/A'} | 📂 ${s.files||'0'} | 💾 ${s.storage||'N/A'} | 👤 ${s.created||'N/A'}<br>
+      🔗 <a href="${s.url}" target="_blank">${s.url}</a></div>`;
+    sp.ondragstart=()=>{draggedSpoke={div:selectedDivision,hub:selectedHub,idx:i}; sp.classList.add('dragging');};
+    sp.ondragend=()=>sp.classList.remove('dragging');
+    panel.appendChild(sp);
+  });
+}
+
+function isInactive(l,f){ if(!l) return true; const d=new Date(l); if(isNaN(d)) return true; const days=(new Date()-d)/(1000*60*60*24); return days>180||!f||f==='0'; }
+
+// --- Hub Edit Modal ---
+function openHubEditModal(div,h,event){
+  event.stopPropagation();
+  const modal=document.createElement('div'); modal.className='modal-bg';
+  modal.innerHTML=`<div class="modal">
+    <p>Edit Hub Name</p>
+    <input type="text" id="hubNameInput" value="${h}" style="width:90%;padding:5px;margin-top:5px">
+    <div style="margin-top:10px;display:flex;justify-content:space-around">
+      <button onclick="saveHubName('${div}','${h}');closeModal()">Save</button>
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>`;
+  document.getElementById('modalContainer').appendChild(modal);
+}
+function saveHubName(div,oldName){
+  const newName=document.getElementById('hubNameInput').value.trim();
+  if(!newName||newName===oldName) return;
+  data[div][newName]=data[div][oldName];
+  delete data[div][oldName];
+  if(selectedHub===oldName) selectedHub=newName;
+  renderLeft(); renderRight();
+}
+
+// --- Spoke Delete Modal ---
+function confirmDeleteSpoke(i){
+  const m=document.createElement('div');m.className='modal-bg';
+  m.innerHTML=`<div class="modal"><p>Delete this spoke?</p>
+    <div style="display:flex;justify-content:space-around;">
+      <button onclick="deleteSpoke(${i});closeModal()">Yes</button>
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+    </div></div>`;
+  document.getElementById('modalContainer').appendChild(m);
+}
+function closeModal(){document.getElementById('modalContainer').innerHTML='';}
+function deleteSpoke(i){data[selectedDivision][selectedHub].spokes.splice(i,1); renderRight(); renderLeft();}
+
+// --- Add Hub & Save CSV ---
+document.getElementById('addHubBtn').onclick=()=>{
+  const div=prompt('Division name?'), hub=prompt('Hub name?'), url=prompt('Hub URL:')||'#';
+  if(!div||!hub) return;
+  if(!data[div]) data[div]={};
+  data[div][hub]={url,spokes:[]}; renderLeft();
+};
+document.getElementById('saveCsvBtn').onclick=()=>{
+  const rows=[['Division','Hub Site Name','Hub URL','Spoke Site Name','Spoke URL','Last activity (UTC)','Files','Storage used (%)','Created by']];
+  Object.keys(data).forEach(d=>Object.keys(data[d]).forEach(h=>data[d][h].spokes.forEach(s=>
+    rows.push([d,h,data[d][h].url,s.name,s.url,s.last,s.files,s.storage,s.created])
+  )));
+  const csv=rows.map(r=>r.map(x=>`"${x}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const timestamp=new Date().toISOString().replace(/[-:.]/g,'').slice(0,15);
+  const filename=`IA_CARD_SORT_${timestamp}.csv`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+};
+</script>
+</body>
+</html>
