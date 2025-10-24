@@ -30,12 +30,12 @@ async function main() {
     try {
       const csvContent = fs.readFileSync(csvPath, 'utf-8')
       const csvData = CSVParser.parseCSVText(csvContent)
-      const sites = CSVParser.transformToSiteData(csvData)
+      const csvSites = CSVParser.transformToSiteData(csvData)
 
-      console.log(`📊 Parsed ${sites.length} sites from CSV`)
+      console.log(`📊 Parsed ${csvSites.length} sites from CSV`)
 
       // Create sites in database
-      for (const siteData of sites) {
+      for (const siteData of csvSites) {
         await prisma.site.upsert({
           where: { url: siteData.url },
           update: {
